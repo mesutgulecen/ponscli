@@ -125,15 +125,23 @@ describe('scanLogs', () => {
 })
 
 describe('IndexStore', () => {
-  let dir: string
+  // Reset as well as removed. Leaving the name behind hands the next test a
+  // path that no longer exists, which the store papers over by recreating it
+  // and a test writing there directly does not.
+  let dir: string | undefined
 
   afterEach(() => {
     if (dir !== undefined) rmSync(dir, { recursive: true, force: true })
+    dir = undefined
   })
 
-  function store(chainId = 4663): IndexStore {
+  function cacheDir(): string {
     dir ??= mkdtempSync(join(tmpdir(), 'ponscli-cache-'))
-    return new IndexStore({ dir, chainId, now: () => 1_700_000_000 })
+    return dir
+  }
+
+  function store(chainId = 4663): IndexStore {
+    return new IndexStore({ dir: cacheDir(), chainId, now: () => 1_700_000_000 })
   }
 
   it('round-trips a value', () => {
@@ -161,7 +169,13 @@ describe('IndexStore', () => {
   })
 
   it('survives a directory it cannot write to', () => {
-    const cache = new IndexStore({ dir: '/proc/nonexistent/ponscli', chainId: 4663 })
+    // A path *under a regular file*, which every OS refuses with ENOTDIR. The
+    // earlier version pointed at `/proc/nonexistent`, which only fails the way
+    // this test wants on a system with no procfs — that is, on the machine it
+    // was written on and not on the one CI runs.
+    const blocker = join(cacheDir(), 'not-a-directory')
+    writeFileSync(blocker, '')
+    const cache = new IndexStore({ dir: join(blocker, 'ponscli'), chainId: 4663 })
     expect(() => cache.write('pairs', { scannedTo: '1' })).not.toThrow()
     expect(cache.read('pairs')).toBeUndefined()
   })
