@@ -1,9 +1,8 @@
 # ponscli
 
 [![CI](https://github.com/mesutgulecen/ponscli/actions/workflows/ci.yml/badge.svg)](https://github.com/mesutgulecen/ponscli/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/ponscli.svg)](https://www.npmjs.com/package/ponscli)
-[![node](https://img.shields.io/node/v/ponscli.svg)](https://nodejs.org)
-[![license](https://img.shields.io/npm/l/ponscli.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D20.11-brightgreen)](https://nodejs.org)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 An **unofficial** command-line interface for the [**Pons**](https://www.ponsfamily.com/) launchpad on **Robinhood Chain** (chain ID 4663), built for developers and agents alike. Not affiliated with Pons or Robinhood; it reads public contracts on a public chain.
 
@@ -16,17 +15,25 @@ An **unofficial** command-line interface for the [**Pons**](https://www.ponsfami
 ## Install
 
 ```sh
-npm install -g ponscli
+npm install -g github:mesutgulecen/ponscli
 pons --version
 ```
 
-Or without installing anything:
+That builds from source during the install, so both binaries are ready
+afterwards. Or run it straight from the repository without installing anything:
 
 ```sh
-npx ponscli info 0x44D6…20f4
+npx github:mesutgulecen/ponscli info 0x44D6…20f4
 ```
 
-Requires Node.js 20.11 or newer. From a clone, `npm install && npm run dev -- <command>`.
+**Two Node versions matter, and they are not the same one.** The CLI *runs* on
+**20.11 or newer**, which CI checks on every push by installing the packaged
+tarball on exactly that version. *Building* it needs **20.19 or newer**, because
+the linter's dependency tree requires it, so installing from GitHub or working
+from a clone needs the higher one.
+
+> Not on the npm registry yet, so there is no `npm install -g ponscli`. The
+> install above is the supported one.
 
 ## Quick start
 
