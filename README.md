@@ -14,26 +14,31 @@ An **unofficial** command-line interface for the [**Pons**](https://www.ponsfami
 
 ## Install
 
+Not on the npm registry yet, so the install is from source. `npm install` builds
+the binaries as part of the install:
+
 ```sh
-npm install -g github:mesutgulecen/ponscli
+git clone https://github.com/mesutgulecen/ponscli
+cd ponscli
+npm install
+npm install -g .          # puts `pons` and `pons-mcp` on your PATH
 pons --version
 ```
 
-That builds from source during the install, so both binaries are ready
-afterwards. Or run it straight from the repository without installing anything:
-
-```sh
-npx github:mesutgulecen/ponscli info 0x44D6…20f4
-```
+Leave off the third command to keep it to the clone, and run it with
+`npm run dev -- <command>` instead.
 
 **Two Node versions matter, and they are not the same one.** The CLI *runs* on
 **20.11 or newer**, which CI checks on every push by installing the packaged
 tarball on exactly that version. *Building* it needs **20.19 or newer**, because
-the linter's dependency tree requires it, so installing from GitHub or working
-from a clone needs the higher one.
+the linter's dependency tree requires it, and installing from source builds.
 
-> Not on the npm registry yet, so there is no `npm install -g ponscli`. The
-> install above is the supported one.
+> `npm install -g github:mesutgulecen/ponscli` does **not** work, and neither
+> does `npx github:mesutgulecen/ponscli`. npm does not install the build
+> toolchain when it prepares a git dependency for a global install, so the
+> build step fails with `tsup: command not found`. Measured on npm 10.9.2 and
+> 11. Installing the repository as a *dependency* of another project does work,
+> because that path installs devDependencies first.
 
 ## Quick start
 
