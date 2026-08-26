@@ -20,6 +20,9 @@ jobs:
   check:
     name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    # A hung step should cost minutes, not the six-hour default. The suite runs
+    # in seconds; anything past this is a fault worth failing on.
+    timeout-minutes: 15
     strategy:
       # One red version should not hide the others.
       fail-fast: false
@@ -48,14 +51,18 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      # `--reporter=hanging-process` names whatever is still holding the event
+      # loop open if the run does not exit, which a plain failure report cannot
+      # show. It prints nothing on a clean run.
       - name: Test
-        run: npm test
+        run: npm test -- --reporter=default --reporter=hanging-process
       - name: Build
         run: npm run build
 
   package:
     name: Install as a user would, on the declared floor
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       # Built on a current version, because building needs the toolchain.
@@ -100,6 +107,7 @@ jobs:
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
