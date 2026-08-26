@@ -1,0 +1,74 @@
+name: Bug report
+description: Something the CLI did that it should not have
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you paste anything:** this tool handles private keys. Never
+        include a keystore file, a private key, a seed phrase, a password, or a
+        paid RPC URL, because the key lives in the URL. `pons doctor` and `--json`
+        output already mask endpoint credentials; anything you paste by hand
+        does not.
+
+  - type: input
+    id: version
+    attributes:
+      label: ponscli version
+      description: Output of `pons --version`
+      placeholder: '0.1.0'
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node --version`
+      placeholder: v22.15.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: The command you ran
+      description: With the flags, as typed. Replace any address you would rather not share, but keep the shape.
+      render: shell
+      placeholder: pons sell 0x… 50% --slippage 200 --confirm
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: >-
+        Re-run with `--json` if you can: the error code and details are stable
+        and say more than the human rendering. Errors go to stderr, so
+        `pons … --json 2>&1`.
+      render: json
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: pons doctor --json
+      description: >-
+        Only if the problem looks like it involves the network: a timeout, an
+        endpoint failure, a slow command. Credentials are masked in this output.
+      render: json
+
+  - type: checkboxes
+    id: money
+    attributes:
+      label: Did this involve a transaction?
+      options:
+        - label: A transaction was signed or broadcast. If so, please include the hash, which `pons tx <hash>` decodes.
+        - label: Nothing was sent (no flag, `--dry-run` or `--unsigned`).

@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual re-run knob, for when a transient failure (a registry hiccup, a
+  # runner outage) killed a run and an empty commit is the wrong way to retry.
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      # One red version should not hide the others.
+      fail-fast: false
+      matrix:
+        # This is the floor for *developing* the repo, which is not the floor
+        # `engines` declares for using it. `npm ci` installs devDependencies,
+        # and eslint's tree requires ^20.19. Measured, not assumed: the first
+        # CI run failed here with EBADENGINE on eslint-visitor-keys.
+        #
+        # The published package is held to the lower floor by the `package` job
+        # below, which installs the real tarball on 20.11.0 and runs it. Raising
+        # `engines` to match this matrix would exclude users who can run the
+        # thing perfectly well.
+        node: ['20.19.0', '22', '24']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # Run separately rather than as one chain: when the second fails you
+      # want the first's output still on screen. Same reason CONTRIBUTING.md
+      # asks contributors to run them one at a time.
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  package:
+    name: Install as a user would, on the declared floor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Built on a current version, because building needs the toolchain.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # `npm test` never touches `bin`, `files` or the shebangs, so a tarball
+      # can be broken while every test passes. This installs the real artefact
+      # into a clean prefix and runs it, which is the first thing a reader of
+      # the README will do.
+      - name: Pack
+        run: npm pack --silent
+      # Then dropped to the version `engines` claims. A global install of the
+      # tarball pulls production dependencies only, so this is the actual
+      # question: does what we publish run where we say it runs. An EBADENGINE
+      # here is a real defect in the claim, unlike the one in the matrix above.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20.11.0'
+      - name: Install globally
+        run: |
+          set -euo pipefail
+          npm install -g --prefix "$RUNNER_TEMP/prefix" ./ponscli-*.tgz
+          echo "$RUNNER_TEMP/prefix/bin" >> "$GITHUB_PATH"
+          node --version
+      - name: Both binaries run
+        run: |
+          set -euo pipefail
+          pons --version
+          pons --help > /dev/null
+          # The MCP server speaks JSON-RPC on stdout and must put nothing else
+          # there. One stray line desynchronises a client's parser, so the
+          # check is that the first line parses, not merely that it exited.
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            | timeout 30 pons-mcp \
+            | head -1 \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const m=JSON.parse(d);if(!m.result)throw new Error("no initialize result");console.log("mcp initialize ok:",m.result.serverInfo.name)})'
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Production dependencies block. This CLI encrypts private keys and signs
+      # transactions; an advisory in something that ships to a user's machine is
+      # not a merge-later problem.
+      - name: Production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      # Dev dependencies report. A advisory in a build tool cannot reach a user,
+      # and letting it hold up unrelated work trains people to ignore the job.
+      - name: Development dependencies
+        run: npm audit --audit-level=high || true

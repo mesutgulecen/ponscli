@@ -1,0 +1,78 @@
+{
+  "name": "ponscli",
+  "version": "0.1.0",
+  "description": "Unofficial command-line interface for the Pons launchpad on Robinhood Chain",
+  "keywords": [
+    "pons",
+    "launchpad",
+    "robinhood-chain",
+    "evm",
+    "cli",
+    "viem"
+  ],
+  "license": "MIT",
+  "author": "mesutgulecen (https://github.com/mesutgulecen)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mesutgulecen/ponscli.git"
+  },
+  "homepage": "https://github.com/mesutgulecen/ponscli#readme",
+  "bugs": {
+    "url": "https://github.com/mesutgulecen/ponscli/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "bin": {
+    "pons": "dist/cli.js",
+    "pons-mcp": "dist/mcp.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "abi:fetch": "node scripts/fetch-abis.mjs",
+    "abi:check": "node scripts/fetch-abis.mjs --check",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build",
+    "mcp": "tsx src/mcp.ts",
+    "test:sequence": "tsx scripts/sequence-check.mts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "commander": "^13.1.0",
+    "viem": "^2.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "globals": "^17.11.0",
+    "solc": "0.8.35",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "tmp": "^0.2.6",
+    "esbuild": "^0.28.1"
+  }
+}

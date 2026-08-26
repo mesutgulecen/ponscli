@@ -1,0 +1,48 @@
+name: Live chain checks
+
+# Two checks reach Robinhood Chain mainnet, and both are deliberately absent
+# from `npm test` and from the pull-request gate:
+#
+#   abi:check      re-fetches every ABI from its verifier and fails on drift
+#   test:sequence  proves multi-block sequences with `eth_simulateV1`
+#
+# They are off the gate because their failure modes are not the contributor's:
+# a public verifier rate-limits, an endpoint is briefly down, a redeployment
+# lands. None of that should hold up a change to a formatter.
+#
+# But they are on a SCHEDULE rather than left to whoever remembers, because the
+# things they catch are exactly the things nobody notices otherwise. An ABI that
+# has drifted from the deployed contract, or a sequence the CLI orders wrongly,
+# is silent until it costs somebody a transaction. A check nobody is obliged to
+# run is a check that rots.
+#
+# A red run here is a signal to investigate, not a broken build.
+
+on:
+  schedule:
+    # Mondays 06:00 UTC. Weekly rather than daily: these read a public chain
+    # through free endpoints that are token buckets, and there is nothing to
+    # learn from asking them the same question every morning.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Independent of each other, so `if: always()` on the second: a drifted
+      # ABI should not hide a broken sequence.
+      - name: ABI drift
+        run: npm run abi:check
+      - name: Transaction sequences
+        if: always()
+        run: npm run test:sequence
