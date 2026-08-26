@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual re-run knob, for when a transient failure (a registry hiccup, a
+  # runner outage) killed a run and an empty commit is the wrong way to retry.
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      # One red version should not hide the others.
+      fail-fast: false
+      matrix:
+        # 20.11.0 exactly, because that is what `engines` claims and a floor
+        # nobody runs is a floor nobody knows is wrong. Then the version
+        # development happens on, and the newest, so a break arrives here
+        # rather than in somebody's install.
+        node: ['20.11.0', '22', '24']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # Run separately rather than as one chain: when the second fails you
+      # want the first's output still on screen. Same reason CONTRIBUTING.md
+      # asks contributors to run them one at a time.
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  package:
+    name: Install as a user would
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # `npm test` never touches `bin`, `files` or the shebangs, so a tarball
+      # can be broken while every test passes. This installs the real artefact
+      # into a clean prefix and runs it, which is the first thing a reader of
+      # the README will do.
+      - name: Pack and install globally
+        run: |
+          set -euo pipefail
+          npm pack --silent
+          npm install -g --prefix "$RUNNER_TEMP/prefix" ./ponscli-*.tgz
+          echo "$RUNNER_TEMP/prefix/bin" >> "$GITHUB_PATH"
+      - name: Both binaries run
+        run: |
+          set -euo pipefail
+          pons --version
+          pons --help > /dev/null
+          # The MCP server speaks JSON-RPC on stdout and must put nothing else
+          # there. One stray line desynchronises a client's parser, so the
+          # check is that the first line parses, not merely that it exited.
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            | timeout 30 pons-mcp \
+            | head -1 \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const m=JSON.parse(d);if(!m.result)throw new Error("no initialize result");console.log("mcp initialize ok:",m.result.serverInfo.name)})'
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Production dependencies block. This CLI encrypts private keys and signs
+      # transactions; an advisory in something that ships to a user's machine is
+      # not a merge-later problem.
+      - name: Production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      # Dev dependencies report. A advisory in a build tool cannot reach a user,
+      # and letting it hold up unrelated work trains people to ignore the job.
+      - name: Development dependencies
+        run: npm audit --audit-level=high || true

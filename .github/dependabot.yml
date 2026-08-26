@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # viem tracks a moving chain surface and commander is load-bearing for the
+  # error taxonomy, so both are worth seeing early rather than in bulk.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the toolchain: these move together and each is a build-time
+      # dependency that cannot reach a user's machine.
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+  # A pinned action that silently ages is how a workflow starts failing on a
+  # deprecation nobody read about.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
