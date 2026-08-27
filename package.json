@@ -4,11 +4,22 @@
   "description": "Unofficial command-line interface for the Pons launchpad on Robinhood Chain",
   "keywords": [
     "pons",
+    "ponsfamily",
     "launchpad",
     "robinhood-chain",
+    "bonding-curve",
+    "memecoin",
+    "uniswap-v4",
+    "uniswap-v3",
     "evm",
+    "defi",
+    "web3",
+    "ethereum",
     "cli",
-    "viem"
+    "typescript",
+    "viem",
+    "mcp",
+    "model-context-protocol"
   ],
   "license": "MIT",
   "author": "mesutgulecen (https://github.com/mesutgulecen)",
