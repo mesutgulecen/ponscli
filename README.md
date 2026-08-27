@@ -1,8 +1,9 @@
 # ponscli
 
 [![CI](https://github.com/mesutgulecen/ponscli/actions/workflows/ci.yml/badge.svg)](https://github.com/mesutgulecen/ponscli/actions/workflows/ci.yml)
-[![node](https://img.shields.io/badge/node-%3E%3D20.11-brightgreen)](https://nodejs.org)
-[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![npm](https://img.shields.io/npm/v/ponscli.svg)](https://www.npmjs.com/package/ponscli)
+[![node](https://img.shields.io/node/v/ponscli.svg)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/ponscli.svg)](LICENSE)
 
 An **unofficial** command-line interface for the [**Pons**](https://www.ponsfamily.com/) launchpad on **Robinhood Chain** (chain ID 4663), built for developers and agents alike. Not affiliated with Pons or Robinhood; it reads public contracts on a public chain.
 
@@ -14,31 +15,23 @@ An **unofficial** command-line interface for the [**Pons**](https://www.ponsfami
 
 ## Install
 
-Not on the npm registry yet, so the install is from source. `npm install` builds
-the binaries as part of the install:
-
 ```sh
-git clone https://github.com/mesutgulecen/ponscli
-cd ponscli
-npm install
-npm install -g .          # puts `pons` and `pons-mcp` on your PATH
+npm install -g ponscli
 pons --version
 ```
 
-Leave off the third command to keep it to the clone, and run it with
-`npm run dev -- <command>` instead.
+Or without installing anything. The package is `ponscli` and the binary is
+`pons`, so `npx` has to be told which one to run:
+
+```sh
+npx -p ponscli pons info 0x44D6…20f4
+```
 
 **Two Node versions matter, and they are not the same one.** The CLI *runs* on
 **20.11 or newer**, which CI checks on every push by installing the packaged
 tarball on exactly that version. *Building* it needs **20.19 or newer**, because
-the linter's dependency tree requires it, and installing from source builds.
-
-> `npm install -g github:mesutgulecen/ponscli` does **not** work, and neither
-> does `npx github:mesutgulecen/ponscli`. npm does not install the build
-> toolchain when it prepares a git dependency for a global install, so the
-> build step fails with `tsup: command not found`. Measured on npm 10.9.2 and
-> 11. Installing the repository as a *dependency* of another project does work,
-> because that path installs devDependencies first.
+the linter's dependency tree requires it. From a clone, `npm install` builds as
+part of the install, and `npm run dev -- <command>` runs it from source.
 
 ## Quick start
 
