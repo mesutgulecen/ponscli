@@ -30,7 +30,6 @@
  *   npm run test:sequence
  */
 import {
-  createPublicClient,
   encodeAbiParameters,
   encodeFunctionData,
   erc20Abi,
@@ -55,18 +54,27 @@ import {
   type LaunchIntent,
 } from '../src/core/adapters/v2launch.js'
 import { IndexStore } from '../src/core/index/store.js'
+import { createRpc } from '../src/chain/transport.js'
+import { resolveConfig } from '../src/config/index.js'
 import { readPairTokens, resolvePairToken } from '../src/core/pairs.js'
 import { decodeRevert } from '../src/core/revert.js'
 
-const RPC = process.env['PONS_RPC_URL'] ?? 'https://rpc.mainnet.chain.robinhood.com'
-
-const client = createPublicClient({
-  chain: robinhoodChain,
-  transport: http(RPC, {
-    timeout: 30_000,
-    fetchOptions: { headers: { 'user-agent': 'ponscli-sequence-check' } },
-  }),
-  batch: { multicall: true },
+/**
+ * The CLI's own waterfall, not a bare client.
+ *
+ * This used to be a single `http()` transport pointed at the official endpoint.
+ * It never failed on a developer's machine and failed immediately in CI, where
+ * the runner shares an IP with a great deal of other traffic and the free
+ * endpoint's token bucket answers **429**. A bare client has nothing to do with
+ * a 429 but throw, which killed the run on the first `eth_getLogs`.
+ *
+ * The pool already knows the answer: park the throttled endpoint for thirty
+ * seconds and walk to the next one. Using it here also means this check
+ * exercises the routing layer it is meant to be checking, rather than a
+ * simplified stand-in for it.
+ */
+const { client } = createRpc(resolveConfig().values, {
+  onWarn: (message) => console.error(`  rpc: ${message}`),
 })
 
 /** An account with nothing in it, funded per simulation by an override. */
